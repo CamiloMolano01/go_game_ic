@@ -3,6 +3,7 @@ from tkinter import messagebox
 
 import time
 import pygame
+import pygame_menu
 import numpy as np
 import itertools
 import sys
@@ -20,6 +21,7 @@ BLACK = (0, 0, 0)
 TURN_POS = (10, 20)
 SCORE_POS = (BOARD_BORDER, BOARD_WIDTH - BOARD_BORDER + 30)
 DOT_RADIUS = 4
+BOARD_SIZE = 6
 
 
 def make_grid(size):
@@ -188,11 +190,8 @@ def has_no_liberties(board, group):
     # For every stone in the group that is represented as an x,y set of coordinates checks for every space in the
     # four cardinal directions, if any of the is empty(0) then the group has a liberty hence ir returns false
     # If the cardinal search does not find an empty space then the group has no liberties
-    #print("Size group: ", len(group))
-    # print(group)
+
     for x, y in group:
-        #print("x,y: ", x, y)
-        # print("una vez ...")
         if x > 0 and board[x - 1, y] == 0:
             return False
         if y > 0 and board[x, y - 1] == 0:
@@ -204,12 +203,12 @@ def has_no_liberties(board, group):
     return True
 
 
-# MODOS: 1 vs 1, 1 vs Machine, Machine vs Machine
+# MODOS: 1 vs 1, 1 vs Machine, Machine vs Machine*********
 # Pasamos profundidad y turno
 # Profundidad inicia en 5 al buscar
 
 def heuristica(board, prisoners):
-    # Mi heuristica va a ser la cantidad de mis fichas prisioneras
+    # La heuristica va a ser la cantidad de mis fichas prisioneras
     #  menos las prisionera del otro por 7 (para tener un rango).
 
     # Tambien se tendran en cuenta la cantidad de fichas en peligro
@@ -251,16 +250,10 @@ def heuristica(board, prisoners):
 
     spaces_black, spaces_white = dominated_spaces(board)
 
-    # if (black_turn):
     diff_prisoners = prisoners_black - prisoners_white
     diff_dangerous = dangerous_white - dangerous_black
     diff_spaces = spaces_black - spaces_white
-    #print(diff_prisoners, diff_dangerous, diff_spaces)
-    # else:
-    #diff_prisoners = prisoners_white - prisoners_black
-    #diff_dangerous = dangerous_white - dangerous_black
-    #diff_spaces = spaces_white - spaces_black
-    #print("dominados: ", spaces_black, " :: ", spaces_white)
+
     return (diff_prisoners * 7) + (diff_dangerous * 3) + (diff_spaces * 5)
 
 
@@ -315,28 +308,20 @@ def get_best_movement(board_node, prisoners, black_turn, depth, alpha, beta):
 
         return min_X, min_Y, minEva
 
-    #print("Esto es el resultado de mi primer heuristica wiiiii:")
-    #print(heuristica(board, black_turn, prisoners))
-
 
 # Acá voy a hacer magia
 def get_child_nodes(board, prisoners, black_turn):
     # print(board)
     nodes = []
-    #print("Original board")
-    # print(board)
     # 6 porque es el actual tamaño del tablero (6x6)
-    for x in range(6):
-        for y in range(6):
-            # print(board)
+    for x in range(BOARD_SIZE):
+        for y in range(BOARD_SIZE):
             if board[x, y] == 0:  # Si el espacio esta libre
                 isSuicide, return_board, return_prisoners = is_suicide(
                     x, y, board, prisoners.copy(), black_turn)
                 if not isSuicide:
                     content = (x, y, return_board, return_prisoners)
                     nodes.append(content)  # Agrego solo tableros posibles
-    # print(nodes)
-    # print(len(nodes))
     return nodes
 
 
@@ -371,8 +356,8 @@ def dominated_spaces(board):
     spaces_whites = 0
 
     # 6 porque es el actual tamaño del tablero (6x6)
-    for x in range(6):
-        for y in range(6):
+    for x in range(BOARD_SIZE):
+        for y in range(BOARD_SIZE):
             if (board[x, y] == 0):  # Espacios no ocupados
                 around_blacks = 0
                 around_whites = 0
@@ -410,15 +395,37 @@ def dominated_spaces(board):
 def init_pygame():
     # Starts the game screen using the default size from WIDTH
     pygame.init()
+    start_menu()
+
+
+def init_game(args):
+    screen, mode = args
+    game = Game(size=BOARD_SIZE, screen=screen, mode=mode)
+    game.clear_screen()
+    game.draw()
+    while True:
+        game.update()
+        pygame.time.wait(100)
+
+
+def start_menu():
+    screen = pygame.display.set_mode((BOARD_WIDTH, BOARD_WIDTH))
+
+    menu = pygame_menu.Menu('Principal Menu', 500, 400,
+                            theme=pygame_menu.themes.THEME_BLUE)
+    menu.add.button('Play Human vs Human', init_game, (screen, 1))
+    menu.add.button('Play Human vs Machine', init_game, (screen, 2))
+    menu.add.button('Play Machine vs Machine', init_game, (screen, 3))
+    menu.add.button('Quit', pygame_menu.events.EXIT)
+    menu.mainloop(screen)
 
 
 class Game:
-    def __init__(self, size):
+    def __init__(self, size, screen, mode):
         # start of the game, creates an array full of 0s that will be the starting board
         # starts the turn with the black player
         # creates a collection that creates any item that will be accessed, as long as they are not present already
         # assigns the value of the start/end points from the edges of the newly created grid using the input size
-        screen = pygame.display.set_mode((BOARD_WIDTH, BOARD_WIDTH))
         self.screen = screen
         self.font = pygame.font.SysFont("arial", 30)
         self.board = np.zeros((size, size))
@@ -429,9 +436,20 @@ class Game:
         self.pass_counter = 0
         self.turn = 0
         self.depth = 3  # No recomiendo subir la profundidad
+        self.mode = mode
+        self.last_x_machine = 3
+        self.last_y_machine = 3
+        if mode == 3:
+            self.init_movements()
+
+    def init_movements(self):
+        self.board[2, 2] = 1
+        self.board[2, 3] = 1
+        self.board[3, 2] = 2
+        self.board[3, 3] = 2
+        self.draw()
 
     def clear_screen(self):
-
         # fill board with color defined and draw the lines inside using the star and end points
         self.screen.fill(BOARD_COLOR)
         for start_point, end_point in zip(self.start_points, self.end_points):
@@ -446,6 +464,11 @@ class Game:
 
         # Update the game screen after the lines and dots have been drawn
         pygame.display.flip()
+
+    def change_turn(self):
+        self.black_turn = not self.black_turn
+        self.draw()
+        self.turn += 1
 
     def pass_move(self):
         # Pass the turn to the other player
@@ -467,72 +490,56 @@ class Game:
 
     def play_machine(self, last_x, last_y):
         x, y = self.best_movement(last_x, last_y)
-        self.board[x, y] = 2
+        self.board[x, y] = 1 if self.black_turn else 2
+        self_color = "black" if self.black_turn else "white"
+        other_color = "white" if self.black_turn else "black"
 
-        pass
+        # Revisa si se realizó una captura para actualizar el tablero
+        isCapture, return_board, aux_prisoners = is_capture(
+            self.board, self.prisoners, self_color, other_color)
+
+        return (x, y)
 
     # Es la funcion principal
-
-    def handle_click(self):
-        # LA JUGADA DE ELLOS NO ESTA COMIENDO FICHAS, REVISAR, EVITAR LOOP INFINITO DE CAPTURAS -> puede ser acabando la partida
+    def play(self):
+        # LA JUGADA DE ELLOS NO ESTA COMIENDO FICHAS (YA), REVISAR, EVITAR LOOP INFINITO DE CAPTURAS(PENDIENTE) -> puede ser acabando la partida
         # get board position and check for valid clicks INSIDE the actual board
-        
-        #JUGAR USUARIO
-        
-        x, y = pygame.mouse.get_pos()
-        col, row = xy_to_colrow(x, y, self.size)
-        if not is_valid_move(col, row, self.board, self.black_turn):
-            Tk().wm_withdraw()
-            messagebox.showwarning('Warning', 'Invalid movement')
-            return
-        else:
-            # Evalua que no sea un suicidio, en caso de que no, hace la jugada
-            isSuicide, return_board, return_prisoners = is_suicide(
-                col, row, self.board, self.prisoners, self.black_turn)
-            if isSuicide:
+
+        # JUGADA USUARIO
+        if self.mode != 3:
+            x, y = pygame.mouse.get_pos()
+            col, row = xy_to_colrow(x, y, self.size)
+            if not is_valid_move(col, row, self.board, self.black_turn):
                 Tk().wm_withdraw()
-                messagebox.showwarning('Warning', 'This is a suicide')
+                messagebox.showwarning('Warning', 'Invalid movement')
                 return
-            self.board = return_board
-            self.prisoners = return_prisoners
-        
-    
-        
+            else:
+                # Evalua que no sea un suicidio, en caso de que no, hace la jugada
+                isSuicide, return_board, return_prisoners = is_suicide(
+                    col, row, self.board, self.prisoners, self.black_turn)
+                if isSuicide:
+                    Tk().wm_withdraw()
+                    messagebox.showwarning('Warning', 'This is a suicide')
+                    return
+                self.board = return_board
+                self.prisoners = return_prisoners
 
-        
-            #print("Actual heuristica", heuristica(self.board, self.prisoners))
-            # update board array 1 es Negro, 2 es Blanco
-            # self.board[col, row] = 1 if self.black_turn else 2
+            print("Actual heuristica HUMANO: ",
+                  heuristica(self.board, self.prisoners))
 
-        # change turns and draw screen
-        # self.CLICK.play()
-    
-        self.pass_counter = 0
-        self.black_turn = not self.black_turn
-        self.draw()
-        self.turn += 1
+        # Si una persona jugó significa que no pasa turno
+        if self.mode == 1:
+            self.pass_counter = 0
+        # Turno de la maquina
+        elif self.mode == 2:
+            self.change_turn()
+            self.play_machine(x, y)
+        # Turno de la maquina
+        elif self.mode == 3:
+            self.last_x_machine, self.last_y_machine = self.play_machine(
+                self.last_x_machine, self.last_y_machine)
         
-        
-
-        #Turno de la maquina
-        self.play_machine(x, y)
-        #self.pass_counter = 0
-        self.black_turn = not self.black_turn
-        self.draw()
-        self.turn += 1
-
-        """
-        #Turno de la maquina
-        self.play_machine(x, y)
-        #self.pass_counter = 0
-        self.black_turn = not self.black_turn
-        self.draw()
-        self.turn += 1
-        """
-        
-
-        # Aplicacion del Minimax
-        # if self.turn > 5:  # Cambiar ahorita, que no se me olvide
+        self.change_turn()
 
     def draw(self):
         # draw stones - filled circle and antialiased ring
@@ -559,7 +566,6 @@ class Game:
         )
         txt = self.font.render(turn_msg, True, BLACK)
         self.screen.blit(txt, TURN_POS)
-
         pygame.display.flip()
         pygame.display.update()
 
@@ -587,28 +593,24 @@ class Game:
 
     def update(self):
         # TODO: button that undoes the last action
-        events = pygame.event.get()
-        for event in events:
-            if event.type == pygame.MOUSEBUTTONUP:
-                self.handle_click()
-            if event.type == pygame.QUIT:
-                sys.exit()
-            if event.type == pygame.KEYUP:
-                if event.key == pygame.K_p:
-                    if self.pass_counter == 1:
-                        # Finish the game
-                        self.getWinner()
-                        sys.exit()
-                    self.pass_move()
+        # Si no juega sola la maquina entonces tomo en cuenta los clicks
+        if self.mode != 3:
+            events = pygame.event.get()
+            for event in events:
+                if event.type == pygame.MOUSEBUTTONUP:
+                    self.play()
+                if event.type == pygame.QUIT:
+                    sys.exit()
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_p:
+                        if self.pass_counter == 1:
+                            # Finish the game
+                            self.getWinner()
+                            sys.exit()
+                        self.pass_move()
+        else:
+            self.play()
 
 
 if __name__ == "__main__":
     init_pygame()
-    g = Game(size=6)
-
-    g.clear_screen()
-    g.draw()
-
-    while True:
-        g.update()
-        pygame.time.wait(100)
