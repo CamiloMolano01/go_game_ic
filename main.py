@@ -9,9 +9,11 @@ import itertools
 import sys
 import networkx as netx
 import collections
+import requests
 from pygame import gfxdraw
 
 # Constants of the game
+API_URL = 'http://localhost:3000'
 BOARD_COLOR = (193, 117, 8)
 BOARD_WIDTH = 800
 BOARD_BORDER = 70
@@ -111,7 +113,7 @@ def is_valid_move(col, row, board, black_turn):
 
 
 def is_suicide(col, row, board, prisoners, black_turn):
-
+    print(col, row)
     self_color = "black" if black_turn else "white"
     other_color = "white" if black_turn else "black"
 
@@ -405,17 +407,21 @@ def init_game(args):
     game.draw()
     while True:
         game.update()
-        pygame.time.wait(100)
+        if mode < 4:
+            pygame.time.wait(100)
+        else:
+            pygame.time.wait(1000)
 
 
 def start_menu():
     screen = pygame.display.set_mode((BOARD_WIDTH, BOARD_WIDTH))
-
     menu = pygame_menu.Menu('Principal Menu', 500, 400,
                             theme=pygame_menu.themes.THEME_BLUE)
     menu.add.button('Play Human vs Human', init_game, (screen, 1))
     menu.add.button('Play Human vs Machine', init_game, (screen, 2))
     menu.add.button('Play Machine vs Machine', init_game, (screen, 3))
+    menu.add.button('Play Online (Black)', init_game, (screen, 5))
+    menu.add.button('Play Online (White)', init_game, (screen, 4))
     menu.add.button('Quit', pygame_menu.events.EXIT)
     menu.mainloop(screen)
 
@@ -430,7 +436,7 @@ class Game:
         self.font = pygame.font.SysFont("arial", 30)
         self.board = np.zeros((size, size))
         self.size = size
-        self.black_turn = True
+        self.black_turn = True if mode != 4 else False
         self.prisoners = collections.defaultdict(int)
         self.start_points, self.end_points = make_grid(self.size)
         self.pass_counter = 0
@@ -505,8 +511,25 @@ class Game:
         # LA JUGADA DE ELLOS NO ESTA COMIENDO FICHAS (YA), REVISAR, EVITAR LOOP INFINITO DE CAPTURAS(PENDIENTE) -> puede ser acabando la partida
         # get board position and check for valid clicks INSIDE the actual board
 
+        # JUGADA QUE LLEGA DEL OTRO JUGADOR (DISTRIBUIDO)
+        if self.mode == 4:
+            response = requests.get(API_URL + '/getTurn').json()
+            print('Respuesta: ', response)
+            print(self.black_turn)
+            if response['black_turn'] == self.black_turn:
+                x, y = response['position_x'], response['position_y']
+                print(x, y)
+                isSuicide, return_board, return_prisoners = is_suicide(
+                    x, y, self.board, self.prisoners, self.black_turn)
+                self.board = return_board
+                self.prisoners = return_prisoners
+                print("Actual heuristica OTRO HUMANO: ",
+                      heuristica(self.board, self.prisoners))
+                self.change_turn()
+                self.mode = 5
+
         # JUGADA USUARIO
-        if self.mode != 3:
+        elif self.mode == 1 or self.mode == 2 or self.mode == 5:
             x, y = pygame.mouse.get_pos()
             col, row = xy_to_colrow(x, y, self.size)
             if not is_valid_move(col, row, self.board, self.black_turn):
@@ -523,6 +546,14 @@ class Game:
                     return
                 self.board = return_board
                 self.prisoners = return_prisoners
+                if self.mode == 5:
+                    requests.post(url=API_URL + '/postTurn', json={
+                        'black_turn': self.black_turn,
+                        'position_x': col,
+                        'position_y': row
+                    }).json()
+                    self.mode = 4
+                    self.change_turn()
 
             print("Actual heuristica HUMANO: ",
                   heuristica(self.board, self.prisoners))
@@ -530,16 +561,17 @@ class Game:
         # Si una persona jugó significa que no pasa turno
         if self.mode == 1:
             self.pass_counter = 0
+            self.change_turn()
         # Turno de la maquina
         elif self.mode == 2:
             self.change_turn()
             self.play_machine(x, y)
+            self.change_turn()
         # Turno de la maquina
         elif self.mode == 3:
             self.last_x_machine, self.last_y_machine = self.play_machine(
                 self.last_x_machine, self.last_y_machine)
-        
-        self.change_turn()
+            self.change_turn()
 
     def draw(self):
         # draw stones - filled circle and antialiased ring
@@ -594,7 +626,7 @@ class Game:
     def update(self):
         # TODO: button that undoes the last action
         # Si no juega sola la maquina entonces tomo en cuenta los clicks
-        if self.mode != 3:
+        if self.mode == 1 or self.mode == 2 or self.mode == 5:
             events = pygame.event.get()
             for event in events:
                 if event.type == pygame.MOUSEBUTTONUP:
@@ -608,7 +640,7 @@ class Game:
                             self.getWinner()
                             sys.exit()
                         self.pass_move()
-        else:
+        elif self.mode == 3 or self.mode == 4:
             self.play()
 
 
