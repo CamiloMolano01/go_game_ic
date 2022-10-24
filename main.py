@@ -21,7 +21,7 @@ STONE_RADIUS = 22
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 TURN_POS = (10, 20)
-SCORE_POS = (BOARD_BORDER, BOARD_WIDTH - BOARD_BORDER + 30)
+SCORE_POS = (BOARD_BORDER + 30, BOARD_WIDTH - BOARD_BORDER + 10)
 DOT_RADIUS = 4
 BOARD_SIZE = 6
 
@@ -113,7 +113,6 @@ def is_valid_move(col, row, board, black_turn):
 
 
 def is_suicide(col, row, board, prisoners, black_turn):
-    print(col, row)
     self_color = "black" if black_turn else "white"
     other_color = "white" if black_turn else "black"
 
@@ -410,7 +409,7 @@ def init_game(args):
         if mode < 4:
             pygame.time.wait(100)
         else:
-            pygame.time.wait(1000)
+            pygame.time.wait(2000)
 
 
 def start_menu():
@@ -420,8 +419,8 @@ def start_menu():
     menu.add.button('Play Human vs Human', init_game, (screen, 1))
     menu.add.button('Play Human vs Machine', init_game, (screen, 2))
     menu.add.button('Play Machine vs Machine', init_game, (screen, 3))
-    menu.add.button('Play Online (Black)', init_game, (screen, 5))
-    menu.add.button('Play Online (White)', init_game, (screen, 4))
+    menu.add.button('Play Online (White)', init_game, (screen, 5))
+    menu.add.button('Play Online (Black)', init_game, (screen, 4))
     menu.add.button('Quit', pygame_menu.events.EXIT)
     menu.mainloop(screen)
 
@@ -445,6 +444,7 @@ class Game:
         self.mode = mode
         self.last_x_machine = 3
         self.last_y_machine = 3
+        self.score = 0
         if mode == 3:
             self.init_movements()
 
@@ -523,8 +523,7 @@ class Game:
                     x, y, self.board, self.prisoners, self.black_turn)
                 self.board = return_board
                 self.prisoners = return_prisoners
-                print("Actual heuristica OTRO HUMANO: ",
-                      heuristica(self.board, self.prisoners))
+                self.score = heuristica(self.board, self.prisoners)
                 self.change_turn()
                 self.mode = 5
 
@@ -554,9 +553,7 @@ class Game:
                     }).json()
                     self.mode = 4
                     self.change_turn()
-
-            print("Actual heuristica HUMANO: ",
-                  heuristica(self.board, self.prisoners))
+            self.score = heuristica(self.board, self.prisoners)
 
         # Si una persona jugó significa que no pasa turno
         if self.mode == 1:
@@ -587,8 +584,9 @@ class Game:
 
         # text for score and turn info
         score_msg = (
-            f"Black's Prisoners: {self.prisoners['black']}"
-            + f"     White's Prisoners: {self.prisoners['white']}"
+            f"Black's ☠: {self.prisoners['black']}"
+            + f"     White's ☠: {self.prisoners['white']}"
+            + f"     Score: {self.score}"
         )
         txt = self.font.render(score_msg, True, BLACK)
         self.screen.blit(txt, SCORE_POS)
