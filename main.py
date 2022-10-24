@@ -436,7 +436,7 @@ class Game:
         self.font = pygame.font.SysFont("arial", 30)
         self.board = np.zeros((size, size))
         self.size = size
-        self.black_turn = True if mode != 4 else False
+        self.black_turn = False
         self.prisoners = collections.defaultdict(int)
         self.start_points, self.end_points = make_grid(self.size)
         self.pass_counter = 0
