@@ -232,7 +232,7 @@ def heuristica(board, prisoners):
     # Si una jugada es ilegal no la revisa, es ilegal cuando:
     #  el espacio esta ocupado o ocuando es un suicidio
 
-    # No se como determinar terminales jejejejejejejejeje
+    # No se como determinar terminales jajajaj
 
     prisoners_black = prisoners['black']
     prisoners_white = prisoners['white']
