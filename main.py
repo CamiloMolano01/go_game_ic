@@ -252,9 +252,8 @@ def heuristica(board, prisoners):
     spaces_black, spaces_white = dominated_spaces(board)
 
     diff_prisoners = prisoners_black - prisoners_white
-    diff_dangerous = dangerous_white - dangerous_black
+    diff_dangerous = (dangerous_black * -1) - (dangerous_white * -1)
     diff_spaces = spaces_black - spaces_white
-
     return (diff_prisoners * 7) + (diff_dangerous * 3) + (diff_spaces * 5)
 
 
