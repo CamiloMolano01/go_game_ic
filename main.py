@@ -418,8 +418,8 @@ def start_menu():
     menu.add.button('Play Human vs Human', init_game, (screen, 1))
     menu.add.button('Play Human vs Machine', init_game, (screen, 2))
     menu.add.button('Play Machine vs Machine', init_game, (screen, 3))
-    menu.add.button('Play Online (White)', init_game, (screen, 5))
-    menu.add.button('Play Online (Black)', init_game, (screen, 4))
+    menu.add.button('Play Online (Black)', init_game, (screen, 5))
+    menu.add.button('Play Online (White)', init_game, (screen, 4))
     menu.add.button('Quit', pygame_menu.events.EXIT)
     menu.mainloop(screen)
 
@@ -434,7 +434,7 @@ class Game:
         self.font = pygame.font.SysFont("arial", 30)
         self.board = np.zeros((size, size))
         self.size = size
-        self.black_turn = False
+        self.black_turn = True
         self.prisoners = collections.defaultdict(int)
         self.start_points, self.end_points = make_grid(self.size)
         self.pass_counter = 0
@@ -554,7 +554,7 @@ class Game:
                     }).json()
                     self.mode = 4
                     self.change_turn()
-            self.score = heuristica(self.board, self.prisoners)
+                self.score = heuristica(self.board, self.prisoners)
 
         # Si una persona jugó significa que no pasa turno
         if self.mode == 1:
