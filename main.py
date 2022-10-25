@@ -17,11 +17,11 @@ API_URL = 'http://localhost:3000'
 BOARD_COLOR = (193, 117, 8)
 BOARD_WIDTH = 800
 BOARD_BORDER = 70
-STONE_RADIUS = 22
+STONE_RADIUS = 30
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 TURN_POS = (10, 20)
-SCORE_POS = (BOARD_BORDER + 30, BOARD_WIDTH - BOARD_BORDER + 10)
+SCORE_POS = (BOARD_BORDER + 30, BOARD_WIDTH - BOARD_BORDER + 20)
 DOT_RADIUS = 4
 BOARD_SIZE = 6
 
@@ -220,7 +220,7 @@ def heuristica(board, prisoners):
 
     # Heuristica de cada nodo (momento en el tablero)
     # 7 por diferencia de fichas capturadas
-    # 3 por diferencia de fichas en peligro
+    # 3 por diferencia de fichas en peligro (1 sola libertad)
     # 5 por diferencia de espacios dominados
 
     # Los primeros 3 movimientos ya vienen precargados, con la intención de
@@ -440,7 +440,7 @@ class Game:
         self.start_points, self.end_points = make_grid(self.size)
         self.pass_counter = 0
         self.turn = 0
-        self.depth = 3  # No recomiendo subir la profundidad
+        self.depth = 3  # (Solo impares) No recomiendo subir la profundidad
         self.mode = mode
         self.last_x_machine = 3
         self.last_y_machine = 3
@@ -492,6 +492,8 @@ class Game:
         print('Evaluation time: {}s'.format(round(end - start, 7)))
         print('Recommended move: X = {}, Y = {}'.format(qx, qy))
         print('Valor heuristica: ', heuristica_value)
+        self.score = heuristica_value
+        self.draw()
         return qx, qy
 
     def play_machine(self, last_x, last_y):
@@ -569,6 +571,7 @@ class Game:
             self.last_x_machine, self.last_y_machine = self.play_machine(
                 self.last_x_machine, self.last_y_machine)
             self.change_turn()
+        self.score = heuristica(self.board, self.prisoners)
 
     def draw(self):
         # draw stones - filled circle and antialiased ring
@@ -616,9 +619,9 @@ class Game:
         messagebox.showinfo('Info', f"Black's Rocks: {qBlacks}\n"
                                     f"Black's Prisoners: {self.prisoners['black']}\n"
                                     f"White's Rocks: {qWhites}\n"
-                                    f"White's Prisoners: {self.prisoners['white']}\n")
-        winner = "Black" if qBlacks + \
-            self.prisoners['black'] > qWhites + self.prisoners['white'] else "White "
+                                    f"White's Prisoners: {self.prisoners['white']}\n"
+                                    f"SCORE: {self.score}")
+        winner = "Black" if self.score > 0 else "White "
         messagebox.showinfo('Winner', "The winner is: " + winner)
 
     def update(self):
