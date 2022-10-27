@@ -399,12 +399,11 @@ def init_game(args):
     game.clear_screen()
     game.draw()
     while True:
-        pygame.event.get()
         game.update()
         if mode < 4:
             pygame.time.wait(100)
         else:
-            pygame.time.wait(2000)
+            pygame.time.wait(1000)
 
 
 def start_menu():
@@ -645,6 +644,7 @@ class Game:
                             sys.exit()
                         self.pass_move()
         elif self.mode == 3 or self.mode == 4:
+            pygame.event.pump()
             self.play()
 
 
