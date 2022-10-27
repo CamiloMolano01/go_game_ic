@@ -204,9 +204,8 @@ def has_no_liberties(board, group):
     return True
 
 
-# MODOS: 1 vs 1, 1 vs Machine, Machine vs Machine*********
-# Pasamos profundidad y turno
-# Profundidad inicia en 5 al buscar
+# MODOS: 1 vs 1, 1 vs Machine, Machine vs Machine, 1 vs 1 Online
+# Profundidad inicia en 3 al buscar
 
 def heuristica(board, prisoners):
     # La heuristica va a ser la cantidad de mis fichas prisioneras
@@ -258,7 +257,7 @@ def heuristica(board, prisoners):
 # Esto es mi minmax con poda alfa beta
 def get_best_movement(board_node, prisoners, black_turn, depth, alpha, beta):
 
-    if depth == 0:  # Tengo que pensar en un nodo terminal, tal vez board lleno
+    if depth == 0:
         x, y, node_board, node_prisioners = board_node
         return x, y, heuristica(node_board, node_prisioners)
 
@@ -307,9 +306,7 @@ def get_best_movement(board_node, prisoners, black_turn, depth, alpha, beta):
         return min_X, min_Y, minEva
 
 
-# Acá voy a hacer magia
 def get_child_nodes(board, prisoners, black_turn):
-    # print(board)
     nodes = []
     # 6 porque es el actual tamaño del tablero (6x6)
     for x in range(BOARD_SIZE):
