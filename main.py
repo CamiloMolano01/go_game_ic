@@ -399,6 +399,7 @@ def init_game(args):
     game.clear_screen()
     game.draw()
     while True:
+        pygame.event.get()
         game.update()
         if mode < 4:
             pygame.time.wait(100)
