@@ -219,9 +219,9 @@ def heuristica(board, prisoners):
     #  que se multiplica por 5
 
     # Heuristica de cada nodo (momento en el tablero)
-    # 7 por diferencia de fichas capturadas
-    # 3 por diferencia de fichas en peligro (1 sola libertad)
-    # 5 por diferencia de espacios dominados
+    # (+) 7 por diferencia de fichas capturadas
+    # (-) 3 por diferencia de fichas en peligro (1 sola libertad)
+    # (+) 5 por diferencia de espacios dominados
 
     # Los primeros 3 movimientos ya vienen precargados, con la intención de
     #  no analizar un numero demasiado grande de jugadas, ganando eficiencia
@@ -231,8 +231,6 @@ def heuristica(board, prisoners):
 
     # Si una jugada es ilegal no la revisa, es ilegal cuando:
     #  el espacio esta ocupado o ocuando es un suicidio
-
-    # No se como determinar terminales jajajaj
 
     prisoners_black = prisoners['black']
     prisoners_white = prisoners['white']
@@ -524,9 +522,10 @@ class Game:
                     x, y, self.board, self.prisoners, self.black_turn)
                 self.board = return_board
                 self.prisoners = return_prisoners
-                self.score = heuristica(self.board, self.prisoners)
+                self.score = response['score']
                 self.change_turn()
                 self.mode = 5
+                self.draw()
 
         # JUGADA USUARIO
         elif self.mode == 1 or self.mode == 2 or self.mode == 5:
@@ -546,15 +545,18 @@ class Game:
                     return
                 self.board = return_board
                 self.prisoners = return_prisoners
+                self.score = heuristica(self.board, self.prisoners)
                 if self.mode == 5:
                     requests.post(url=API_URL + '/postTurn', json={
                         'black_turn': self.black_turn,
                         'position_x': col,
-                        'position_y': row
+                        'position_y': row,
+                        'score': self.score
                     }).json()
                     self.mode = 4
                     self.change_turn()
-                self.score = heuristica(self.board, self.prisoners)
+                    self.draw()
+                
 
         # Si una persona jugó significa que no pasa turno
         if self.mode == 1:
