@@ -489,6 +489,10 @@ class Game:
         print('Evaluation time: {}s'.format(round(end - start, 7)))
         print('Recommended move: X = {}, Y = {}'.format(qx, qy))
         print('Valor heuristica: ', heuristica_value)
+        # Si no encuentra un movimiento valido posible entonces acaba la partida y busca al ganador
+        if (qx == None or qy == None):
+            self.getWinner()
+            sys.exit()
         self.score = heuristica_value
         self.draw()
         return qx, qy
